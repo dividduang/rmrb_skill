@@ -15,6 +15,9 @@ import logging
 from datetime import datetime
 import traceback
 import random
+import argparse
+import json
+import sys
 
 # 配置日志 - 别tm乱改格式
 logging.basicConfig(
@@ -25,6 +28,14 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
+
+def disable_console_logging():
+    """禁用控制台日志输出（用于 JSON 模式）"""
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+            root_logger.removeHandler(handler)
 
 # 用户代理列表，用于随机切换 - 防止被憨批反爬虫系统ban了
 USER_AGENTS = [
@@ -312,27 +323,122 @@ def download_rmrb_pdf():
             logging.info("浏览器已关闭")
 
 
-# 设置定时任务 - 每天8点执行，别tm迟到
-schedule.every().day.at("08:00").do(download_rmrb_pdf)
+def download_rmrb_pdf_with_result():
+    """
+    下载当天人民日报，返回结果字典
+    用于 skill 调用，返回结构化 JSON 结果
+    """
+    with sync_playwright() as playwright:
+        browser = None
+        page = None
+        try:
+            browser = playwright.chromium.launch(
+                headless=True,
+                args=[
+                    '--disable-gpu',
+                    '--no-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-extensions',
+                    '--disable-infobars',
+                    '--disable-notifications',
+                ]
+            )
+            context = browser.new_context(
+                user_agent=random.choice(USER_AGENTS),
+                viewport={'width': 1920, 'height': 1080},
+                locale='zh-CN'
+            )
+            page = context.new_page()
+            page.set_default_timeout(30000)
+            main_url = 'https://paper.people.com.cn/rmrb/'
+            date_str, pdf_urls = get_pdf_urls(page, main_url)
 
-# 立即执行一次（测试用） - 看看这憨批代码能不能跑
-logging.info("开始测试运行...")
-if download_rmrb_pdf():
-    logging.info("测试运行成功！")
-else:
-    logging.warning("测试运行失败")
+            if not pdf_urls:
+                return {
+                    "success": False,
+                    "error": "未找到PDF链接"
+                }
 
-logging.info("人民日报自动下载程序已启动，每天8点自动执行")
+            # 下载并合并
+            success = download_and_merge_pdfs(date_str, pdf_urls)
 
-# 保持程序运行 - 按Ctrl+C可以中断，别tm强行关进程
-while True:
-    try:
-        schedule.run_pending()
-        time.sleep(60)  # 每分钟检查一次
-    except KeyboardInterrupt:
-        logging.info("程序被用户中断")
-        break
-    except Exception as e:
-        logging.error(f"主循环出错: {e}")
-        logging.error(traceback.format_exc())
-        time.sleep(300)  # 出错后等待5分钟再重试
+            if success:
+                # 返回绝对路径
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                file_path = os.path.join(script_dir, "人民日报下载", f"人民日报-{date_str}-完整版.pdf")
+                return {
+                    "success": True,
+                    "date": date_str,
+                    "file_path": os.path.abspath(file_path),
+                    "pages_count": len(pdf_urls),
+                    "message": "下载完成"
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "下载或合并PDF失败"
+                }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+        finally:
+            if page:
+                try:
+                    page.close()
+                except:
+                    pass
+            if browser:
+                try:
+                    browser.close()
+                except:
+                    pass
+
+
+def main():
+    """主函数 - 处理命令行参数并执行相应操作"""
+    parser = argparse.ArgumentParser(description='人民日报PDF下载器')
+    parser.add_argument('--once', action='store_true',
+                        help='执行一次下载后退出（不启动定时任务）')
+    parser.add_argument('--output-json', action='store_true',
+                        help='JSON格式输出（禁用控制台日志）')
+    args = parser.parse_args()
+
+    # JSON模式下禁用控制台日志
+    if args.output_json:
+        disable_console_logging()
+
+    if args.once:
+        # 执行一次下载并返回 JSON 结果
+        result = download_rmrb_pdf_with_result()
+        print(json.dumps(result, ensure_ascii=False))
+        sys.exit(0 if result['success'] else 1)
+
+    # 默认行为：启动定时任务（保持向后兼容）
+    schedule.every().day.at("08:00").do(download_rmrb_pdf)
+
+    logging.info("开始测试运行...")
+    if download_rmrb_pdf():
+        logging.info("测试运行成功！")
+    else:
+        logging.warning("测试运行失败")
+
+    logging.info("人民日报自动下载程序已启动，每天8点自动执行")
+
+    while True:
+        try:
+            schedule.run_pending()
+            time.sleep(60)
+        except KeyboardInterrupt:
+            logging.info("程序被用户中断")
+            break
+        except Exception as e:
+            logging.error(f"主循环出错: {e}")
+            logging.error(traceback.format_exc())
+            time.sleep(300)
+
+
+if __name__ == "__main__":
+    main()
