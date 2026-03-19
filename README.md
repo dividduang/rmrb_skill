@@ -2,6 +2,9 @@
 > 这是一个用于自动获取每日人民日报完整PDF的项目，仅限自己学习使用，若有侵权联系删除。
 
 这是一个用于自动下载并合并人民日报版面 PDF 的 Python 程序。该程序每天定时从人民日报的官方网站下载最新的 PDF 文件，并将它们合并为一个完整的 PDF 文件。
+
+**本项目现已使用 Playwright 重构，比之前的 Selenium 版本更快、更稳定！**
+
 两个分支，其中`main`提供PDF版报纸下载功能，`article-crawler`提供PDF版文章汇总下载，可用于打印后做笔记使用或导入ipad笔记软件使用。
 
 ## `main`样板展示
@@ -25,6 +28,7 @@
 - 下载并合并该页面中的所有 PDF 文件。
 - 每天早上8点定时执行任务。
 - 支持日志记录和错误处理。
+- **使用 Playwright 浏览器自动化，比 Selenium 更快更稳定**。
 
 ## 安装
 
@@ -32,40 +36,52 @@
 
    ```bash
    git clone https://github.com/Kings-en/rmrb-pdf-fetcher.git
-   cd rmrb_download
-
+   cd rmrb-pdf-fetcher
+   ```
 
 2. 安装依赖库：
 
    ```bash
    pip install -r requirements.txt
+   ```
 
+3. 安装 Playwright 浏览器（首次运行需要）：
 
-3. 确保你的系统上已经安装了 `Google Chrome` 和适配的 `ChromeDriver`。
-
-如果未安装 ChromeDriver，请使用 WebDriver Manager自动安装。
+   ```bash
+   playwright install chromium
+   ```
 
 ## 配置
 
-1. 打开 main.py，检查下载目录和日志文件位置，确保它们适合你的需求。
+1. 打开 `rmrb_download_playwright.py`，检查下载目录和日志文件位置，确保它们适合你的需求。
 
 2. 你可以根据需要修改下载时间，程序默认每天早上 8 点运行。
 
 ## 使用
 
-1. 运行程序：
+1. 运行程序（Playwright 版本）：
 
    ```bash
-   python main.py
+   python rmrb_download_playwright.py
+   ```
+
+   或者运行旧版本（需要 Selenium）：
+
+   ```bash
+   python rmrb_download.py
+   ```
 
 2. 程序将会开始运行并每天自动执行下载任务。
-3. 查看日志文件 rmrb_download.log，可以查看每次下载任务的详细日志。
-4. 启动与维护
+3. 查看日志文件 `rmrb_download.log`，可以查看每次下载任务的详细日志。
+
+## 启动与维护
+
 确保项目按以下步骤启动：
-克隆此 GitHub 仓库。
-安装依赖库（运行 pip install -r requirements.txt）。
-运行 python main.py 启动程序。
-程序将每隔一分钟检查一次定时任务，并每天自动下载人民日报的 PDF 文件。
+1. 克隆此 GitHub 仓库。
+2. 安装依赖库（运行 `pip install -r requirements.txt`）。
+3. 安装 Playwright 浏览器（运行 `playwright install chromium`）。
+4. 运行 `python rmrb_download_playwright.py` 启动程序。
+5. 程序将每隔一分钟检查一次定时任务，并每天自动下载人民日报的 PDF 文件。
 
 
 ## Star History
