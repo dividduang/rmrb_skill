@@ -14,12 +14,16 @@ from datetime import datetime
 import traceback
 import random
 
+# 项目根目录（脚本所在目录）
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # 配置日志
+LOG_FILE = os.path.join(SCRIPT_DIR, 'rmrb_download.log')
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('rmrb_download.log', encoding='utf-8'),
+        logging.FileHandler(LOG_FILE, encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -159,8 +163,8 @@ def download_and_merge_pdfs(date_str, pdf_urls):
         logging.warning("没有可下载的PDF链接")
         return False
 
-    # 创建下载目录
-    download_dir = "人民日报下载"
+    # 创建下载目录（相对于脚本所在目录）
+    download_dir = os.path.join(SCRIPT_DIR, "人民日报下载")
     os.makedirs(download_dir, exist_ok=True)
 
     # 下载并合并PDF

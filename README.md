@@ -1,63 +1,81 @@
-# 人民日报自动下载器
+# 人民日报PDF自动下载器 (rmrb-pdf-fetcher)
 
-> 这是一个用于自动获取每日人民日报完整PDF的项目，仅限自己学习使用，若有侵权联系删除。
+> 自动下载并合并当天人民日报各版面PDF，支持命令行和 Claude Code Skill 调用。
+>
+> 仅限个人学习使用，若有侵权请联系删除。
 
-这是一个用于自动下载并合并人民日报版面 PDF 的 Python 程序。该程序每天定时从人民日报的官方网站下载最新的 PDF 文件，并将它们合并为一个完整的 PDF 文件。
-
-**本项目现已使用 Playwright 重构，比之前的 Selenium 版本更快、更稳定！**
-
-## 致谢
-
-本项目基于 [Kings-en/rmrb-pdf-fetcher](https://github.com/Kings-en/rmrb-pdf-fetcher) 开发，感谢原作者的工作。
+基于 [Kings-en/rmrb-pdf-fetcher](https://github.com/Kings-en/rmrb-pdf-fetcher) 开发，使用 Playwright 重构，比 Selenium 版本更快更稳定。
 
 ## 样板展示
 
-### `main` 分支 - PDF版报纸
+### PDF版报纸
 
 [人民日报-2025-10-19-完整版.pdf](https://github.com/user-attachments/files/22998360/-2025-10-19-.pdf)
 
-### `article-crawler` 分支 - 文章汇总
-
-[rmrb_20251020.pdf](https://github.com/user-attachments/files/22998375/rmrb_20251020.pdf)
-
 ## 功能
 
-- 自动获取人民日报最新页面
-- 下载并合并该页面中的所有 PDF 文件
-- 每天早上8点定时执行任务
-- 支持日志记录和错误处理
-- 使用 Playwright 浏览器自动化，比 Selenium 更快更稳定
-- 支持 Claude Code Skill 调用
+- 自动获取人民日报当天所有版面
+- 下载并合并为单个完整PDF
+- 支持每天定时自动执行（默认早8点）
+- 支持 Claude Code Skill 一键调用
+- JSON 输出模式，便于集成
+- 随机 User-Agent + 延迟，降低被拦截风险
 
 ---
 
-## 安装部署
+## 快速开始
 
-### 方式一：使用 uv（推荐）
+### 环境要求
 
+| 依赖 | 版本要求 |
+|------|----------|
+| Python | >= 3.11 |
+| Playwright | >= 1.40.0 |
+| 网络访问 | 需能访问 `paper.people.com.cn` |
+
+### 一键安装（推荐）
+
+**Windows:**
 ```bash
-# 1. 克隆项目
+# 克隆项目后，双击运行或在终端执行
+install.bat
+```
+
+**Linux / macOS:**
+```bash
 git clone https://github.com/your-username/rmrb-pdf-fetcher.git
 cd rmrb-pdf-fetcher
+bash install.sh
+```
 
-# 2. 同步依赖
+安装脚本会自动完成：
+1. 检测 Python 环境
+2. 安装 Python 依赖（优先使用 uv，回退到 pip + venv）
+3. 安装 Playwright Chromium 浏览器
+4. 注册 Claude Code Skill
+
+### 手动安装
+
+**方式一：使用 uv**
+```bash
+git clone https://github.com/your-username/rmrb-pdf-fetcher.git
+cd rmrb-pdf-fetcher
 uv sync
-
-# 3. 安装 Playwright 浏览器
 uv run playwright install chromium
 ```
 
-### 方式二：使用 pip
-
+**方式二：使用 pip**
 ```bash
-# 1. 克隆项目
 git clone https://github.com/your-username/rmrb-pdf-fetcher.git
 cd rmrb-pdf-fetcher
+python -m venv .venv
 
-# 2. 安装依赖
+# Windows
+.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
+
 pip install -r requirements.txt
-
-# 3. 安装 Playwright 浏览器
 playwright install chromium
 ```
 
@@ -65,66 +83,95 @@ playwright install chromium
 
 ## 使用方法
 
-### 命令行运行
+### 命令行
 
-**定时任务模式（默认）**：
-
+**一次性下载（最常用）：**
 ```bash
-uv run python rmrb_download_playwright.py
-```
-
-**执行一次**：
-
-```bash
+# uv 方式
 uv run python rmrb_download_playwright.py --once
+
+# pip 方式（虚拟环境已激活）
+python rmrb_download_playwright.py --once
 ```
 
-**JSON 输出模式（用于 skill 调用）**：
-
+**JSON 输出（用于集成）：**
 ```bash
-uv run python rmrb_download_playwright.py --once --output-json
+python rmrb_download_playwright.py --once --output-json
 ```
+
+输出示例：
+```json
+{
+  "success": true,
+  "date": "2026-04-02",
+  "file_path": "/path/to/人民日报下载/人民日报-2026-04-02-完整版.pdf",
+  "pages_count": 20,
+  "message": "下载完成"
+}
+```
+
+**定时任务模式（默认早8点）：**
+```bash
+python rmrb_download_playwright.py
+```
+
+按 `Ctrl+C` 停止定时任务。
 
 ### 命令行参数
 
 | 参数 | 说明 |
 |------|------|
-| `--once` | 执行一次下载后退出（不启动定时任务） |
-| `--output-json` | JSON 格式输出（禁用控制台日志） |
+| `--once` | 执行一次下载后退出 |
+| `--output-json` | JSON 格式输出，禁用控制台日志 |
 
 ---
 
 ## Claude Code Skill 集成
 
-### 安装 Skill
-
-将 `skill.md` 复制到 Claude Code skills 目录：
-
-```bash
-# Windows
-mkdir %USERPROFILE%\.claude\skills\rmrb-pdf-fetcher
-copy skill.md %USERPROFILE%\.claude\skills\rmrb-pdf-fetcher\
-
-# Linux/macOS
-mkdir -p ~/.claude/skills/rmrb-pdf-fetcher
-cp skill.md ~/.claude/skills/rmrb-pdf-fetcher/
-```
-
-### 使用方式
-
-在 Claude Code 中输入：
+安装后，在 Claude Code 中可以直接使用：
 
 ```
 /rmrb
 ```
 
 或自然语言：
-
 ```
 下载今天的人民日报
+帮我下载人民日报PDF
+获取今天的报纸
+```
+
+### 手动注册 Skill
+
+如果自动安装未注册 Skill，可以手动操作：
+
+```bash
+# Windows
+mkdir %USERPROFILE%\.claude\skills\rmrb-pdf-fetcher
+copy SKILL.md %USERPROFILE%\.claude\skills\rmrb-pdf-fetcher\
+
+# Linux/macOS
+mkdir -p ~/.claude/skills/rmrb-pdf-fetcher
+cp SKILL.md ~/.claude/skills/rmrb-pdf-fetcher/
 ```
 
 ---
+
+## 项目结构
+
+```
+rmrb-pdf-fetcher/
+├── rmrb_download_playwright.py   # 主程序（Playwright版本，推荐）
+├── rmrb_download_once.py         # 简化版（仅一次性下载）
+├── upload_mineru.py              # MinerU 上传工具（可选）
+├── SKILL.md                      # Claude Code Skill 定义
+├── install.sh                    # Linux/macOS 一键安装
+├── install.bat                   # Windows 一键安装
+├── pyproject.toml                # 项目配置
+├── requirements.txt              # Python 依赖
+├── README.md                     # 本文档
+└── 人民日报下载/                  # 下载输出目录（自动创建）
+```
 
 ## 输出文件
 
@@ -132,22 +179,71 @@ cp skill.md ~/.claude/skills/rmrb-pdf-fetcher/
 
 ```
 人民日报下载/
-└── 人民日报-2026-03-19-完整版.pdf
+└── 人民日报-2026-04-02-完整版.pdf
 ```
 
-## 日志
-
-运行日志保存在项目根目录的 `rmrb_download.log` 文件中。
+运行日志保存在 `rmrb_download.log`。
 
 ---
 
-## Star History
+## 常见问题
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Kings-en/rmrb-pdf-fetcher&type=date&legend=top-left)](https://www.star-history.com/#Kings-en/rmrb-pdf-fetcher&type=date&legend=top-left)
+### 1. Playwright 安装失败
+
+**症状：** `playwright install chromium` 报错或超时
+
+**解决方案：**
+```bash
+# 设置国内镜像
+set PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright  # Windows
+export PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright  # Linux/macOS
+
+playwright install chromium
+```
+
+### 2. 下载失败或无版面
+
+**可能原因：**
+- 网络无法访问 `paper.people.com.cn`
+- 当天报纸尚未上线（通常早6点后可用）
+- 版面结构变化
+
+**排查步骤：**
+```bash
+# 检查网络连通性
+curl -I https://paper.people.com.cn/rmrb/
+
+# 查看详细日志
+cat rmrb_download.log
+```
+
+### 3. Python 版本不兼容
+
+确保 Python >= 3.11：
+```bash
+python --version
+# 如版本过低，从 https://www.python.org/downloads/ 下载安装
+```
+
+### 4. uv sync 失败
+
+回退到 pip 方式：
+```bash
+python -m venv .venv
+# 激活虚拟环境后
+pip install -r requirements.txt
+playwright install chromium
+```
+
+---
+
+## 致谢
+
+- 原项目: [Kings-en/rmrb-pdf-fetcher](https://github.com/Kings-en/rmrb-pdf-fetcher)
 
 ## 贡献
 
-如果你希望为该项目贡献代码，可以创建一个 pull request，提交新的功能或修复 bug。
+欢迎提交 Pull Request 或 Issue。
 
 ## 许可证
 

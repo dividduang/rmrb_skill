@@ -1,7 +1,6 @@
 """
 人民日报PDF自动下载器 - Playwright版本
-这个SB代码用Playwright替代了那个破Selenium，速度更快还更稳定
-作者：隔壁老王
+使用 Playwright 浏览器自动化，下载并合并当天人民日报各版面PDF
 """
 
 import schedule
@@ -19,12 +18,16 @@ import argparse
 import json
 import sys
 
-# 配置日志 - 别tm乱改格式
+# 项目根目录（脚本所在目录）
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 配置日志
+LOG_FILE = os.path.join(SCRIPT_DIR, 'rmrb_download.log')
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('rmrb_download.log', encoding='utf-8'),
+        logging.FileHandler(LOG_FILE, encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -37,7 +40,7 @@ def disable_console_logging():
         if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
             root_logger.removeHandler(handler)
 
-# 用户代理列表，用于随机切换 - 防止被憨批反爬虫系统ban了
+# 用户代理列表，用于随机切换，降低被反爬机制拦截的概率
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -47,14 +50,13 @@ USER_AGENTS = [
 
 
 def get_current_date():
-    """获取当前日期字符串，这特喵的还需要注释？"""
+    """获取当前日期字符串"""
     return datetime.now().strftime("%Y-%m-%d")
 
 
 def get_pdf_urls(page, main_url):
     """
     使用Playwright获取所有PDF链接
-    比那个破Selenium快多了，还更稳定
     """
     pdf_urls = []
     date_str = get_current_date()
@@ -168,14 +170,13 @@ def get_pdf_urls(page, main_url):
 def download_and_merge_pdfs(date_str, pdf_urls):
     """
     下载并合并PDF文件
-    这个憨批函数写得特喵的规范
     """
     if not pdf_urls:
         logging.warning("没有可下载的PDF链接")
         return False
 
-    # 创建下载目录
-    download_dir = "人民日报下载"
+    # 创建下载目录（相对于脚本所在目录）
+    download_dir = os.path.join(SCRIPT_DIR, "人民日报下载")
     os.makedirs(download_dir, exist_ok=True)
 
     # 下载并合并PDF
@@ -187,7 +188,7 @@ def download_and_merge_pdfs(date_str, pdf_urls):
         try:
             logging.info(f"下载PDF {i+1}/{len(pdf_urls)}: {url}")
 
-            # 设置请求头，模拟浏览器访问 - 不然那憨批服务器不给你下
+            # 设置请求头，模拟浏览器访问
             headers = {
                 'User-Agent': random.choice(USER_AGENTS),
                 'Referer': 'https://paper.people.com.cn/',
@@ -208,7 +209,7 @@ def download_and_merge_pdfs(date_str, pdf_urls):
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
 
-            # 验证PDF文件是否有效 - 万一下载的是个憨批错误页面呢
+            # 验证PDF文件是否有效
             try:
                 with open(filename, 'rb') as f:
                     PdfReader(f)
@@ -237,7 +238,7 @@ def download_and_merge_pdfs(date_str, pdf_urls):
 
         logging.info(f"已合并并保存完整版: {merged_filename}")
 
-        # 删除单个版面的PDF文件 - 别tm占硬盘空间
+        # 删除单个版面的PDF文件
         for file in downloaded_files:
             try:
                 os.remove(file)
@@ -254,7 +255,6 @@ def download_and_merge_pdfs(date_str, pdf_urls):
 def download_rmrb_pdf():
     """
     下载并合并人民日报PDF - 主流程控制函数
-    这个函数协调一切，像个憨批管家
     """
     with sync_playwright() as playwright:
         browser = None
@@ -262,7 +262,7 @@ def download_rmrb_pdf():
         try:
             logging.info("开始人民日报PDF下载任务")
 
-            # 启动浏览器 - Chromium比Chrome快，别tm废话
+            # 启动浏览器
             browser = playwright.chromium.launch(
                 headless=True,
                 args=[
@@ -309,7 +309,7 @@ def download_rmrb_pdf():
             logging.error(traceback.format_exc())
             return False
         finally:
-            # 清理资源 - 别tm占用内存
+            # 清理资源
             if page:
                 try:
                     page.close()
@@ -363,9 +363,7 @@ def download_rmrb_pdf_with_result():
             success = download_and_merge_pdfs(date_str, pdf_urls)
 
             if success:
-                # 返回绝对路径
-                script_dir = os.path.dirname(os.path.abspath(__file__))
-                file_path = os.path.join(script_dir, "人民日报下载", f"人民日报-{date_str}-完整版.pdf")
+                file_path = os.path.join(SCRIPT_DIR, "人民日报下载", f"人民日报-{date_str}-完整版.pdf")
                 return {
                     "success": True,
                     "date": date_str,

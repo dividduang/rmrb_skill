@@ -1,14 +1,13 @@
 # 人民日报PDF下载器依赖
-# 老王我给你换成Playwright了，比那破Selenium强多了
 
-# Playwright - 浏览器自动化，比Selenium快多了还更稳定
-playwright==1.40.0
+# Playwright - 浏览器自动化
+playwright>=1.40.0
 
 # requests - HTTP请求，下载PDF用
-requests==2.28.1
+requests>=2.28.1
 
-# PyPDF2 - PDF合并，这个憨批库挺好用的
-PyPDF2==1.26.0
+# PyPDF2 - PDF合并工具
+PyPDF2>=3.0.1
 
-# schedule - 定时任务，每天8点执行，别tm迟到
-schedule==1.1.0
+# schedule - 定时任务调度
+schedule>=1.1.0

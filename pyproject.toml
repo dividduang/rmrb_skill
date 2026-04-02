@@ -1,15 +1,27 @@
 [project]
 name = "rmrb-pdf-fetcher"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "人民日报PDF自动下载器 - 使用 Playwright 下载并合并当天人民日报各版面"
 readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["rmrb", "people-daily", "pdf", "playwright", "newspaper"]
 dependencies = [
-    "playwright>=1.58.0",
+    "playwright>=1.40.0",
     "pypdf2>=3.0.1",
-    "requests>=2.32.5",
-    "schedule>=1.2.2",
+    "requests>=2.28.1",
+    "schedule>=1.1.0",
 ]
+
+[project.scripts]
+rmrb-download = "rmrb_download_playwright:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[tool.setuptools]
+py-modules = ["rmrb_download_playwright", "rmrb_download_once"]
 
 [[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple"
