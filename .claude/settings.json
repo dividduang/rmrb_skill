@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python -c \"import playwright; import requests; import PyPDF2\" 2>/dev/null || echo \"[rmrb-pdf-fetcher] 依赖未安装，请运行: bash scripts/install.sh 或 scripts\\\\install.bat\"",
+        "description": "检查 rmrb-pdf-fetcher 依赖是否已安装"
+      }
+    ]
+  }
+}

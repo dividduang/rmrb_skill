@@ -4,7 +4,7 @@ setlocal EnableDelayedExpansion
 
 REM ============================================================
 REM rmrb-pdf-fetcher 一键安装脚本 (Windows)
-REM 用法: 双击运行 或 cmd 中执行 install.bat
+REM 用法: scripts\install.bat
 REM ============================================================
 
 echo.
@@ -13,9 +13,9 @@ echo   人民日报PDF下载器 - 安装向导
 echo ==========================================
 echo.
 
-REM ---- 项目根目录 ----
-set "SCRIPT_DIR=%~dp0"
-cd /d "%SCRIPT_DIR%"
+REM ---- 项目根目录（scripts 的上级目录）----
+set "PROJECT_ROOT=%~dp0.."
+cd /d "%PROJECT_ROOT%"
 
 REM ---- 1. 检测 Python ----
 echo [INFO] 检测 Python 环境...
@@ -38,8 +38,8 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-REM ---- 2. 检测 uv ----
-set "VENV_DIR=%SCRIPT_DIR%.venv"
+REM ---- 2. 安装依赖 ----
+set "VENV_DIR=%PROJECT_ROOT%\.venv"
 set "RUN_PREFIX="
 
 where uv >nul 2>&1
@@ -55,12 +55,10 @@ if %ERRORLEVEL% equ 0 (
         python -m venv "%VENV_DIR%"
     )
 
-    echo [INFO] 激活虚拟环境...
+    echo [INFO] 激活虚拟环境并安装依赖...
     call "%VENV_DIR%\Scripts\activate.bat"
-
-    echo [INFO] 安装 Python 依赖...
     pip install --upgrade pip -q
-    pip install -r requirements.txt
+    pip install -e "%PROJECT_ROOT%"
 )
 
 REM ---- 3. 安装 Playwright Chromium ----
@@ -76,23 +74,22 @@ set "SKILL_DIR=%USERPROFILE%\.claude\skills\rmrb-pdf-fetcher"
 
 echo [INFO] 注册 Claude Code Skill...
 if not exist "%SKILL_DIR%" mkdir "%SKILL_DIR%"
-copy /Y "%SCRIPT_DIR%SKILL.md" "%SKILL_DIR%\SKILL.md" >nul
-
+copy /Y "%PROJECT_ROOT%\SKILL.md" "%SKILL_DIR%\SKILL.md" >nul
 echo [INFO] Skill 已安装到: %SKILL_DIR%\SKILL.md
 
 REM ---- 5. 验证安装 ----
 echo.
 echo [INFO] 验证安装...
 if "%RUN_PREFIX%"=="uv run" (
-    uv run python -c "import playwright; import requests; import PyPDF2; print('[INFO] Python 依赖: 正常')"
+    uv run python -c "from rmrb_fetcher.downloader import download; print('[INFO] Python 包: 正常')"
 ) else (
-    python -c "import playwright; import requests; import PyPDF2; print('[INFO] Python 依赖: 正常')"
+    python -c "from rmrb_fetcher.downloader import download; print('[INFO] Python 包: 正常')"
 )
 
 if exist "%SKILL_DIR%\SKILL.md" (
     echo [INFO] Skill 注册: 正常
 ) else (
-    echo [WARN] Skill 注册可能失败，请手动复制 SKILL.md
+    echo [WARN] Skill 注册可能失败
 )
 
 REM ---- 完成 ----
@@ -103,16 +100,16 @@ echo ==========================================
 echo.
 echo 使用方法：
 if "%RUN_PREFIX%"=="uv run" (
-    echo   命令行:  uv run python rmrb_download_playwright.py --once
-    echo   JSON:    uv run python rmrb_download_playwright.py --once --output-json
-    echo   定时:    uv run python rmrb_download_playwright.py
+    echo   CLI:    uv run rmrb-download --once
+    echo   JSON:   uv run rmrb-download --once --output-json
+    echo   定时:   uv run rmrb-download
 ) else (
-    echo   命令行:  python rmrb_download_playwright.py --once
-    echo   JSON:    python rmrb_download_playwright.py --once --output-json
-    echo   定时:    python rmrb_download_playwright.py
+    echo   CLI:    rmrb-download --once
+    echo   JSON:   rmrb-download --once --output-json
+    echo   定时:   rmrb-download
 )
-echo   Skill:   在 Claude Code 中输入 /rmrb
+echo   Skill:  在 Claude Code 中输入 /rmrb
 echo.
-echo 下载目录: %SCRIPT_DIR%人民日报下载\
+echo 下载目录: %PROJECT_ROOT%\人民日报下载\
 echo.
 pause

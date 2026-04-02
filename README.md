@@ -4,11 +4,9 @@
 >
 > 仅限个人学习使用，若有侵权请联系删除。
 
-基于 [Kings-en/rmrb-pdf-fetcher](https://github.com/Kings-en/rmrb-pdf-fetcher) 开发，使用 Playwright 重构，比 Selenium 版本更快更稳定。
+基于 [Kings-en/rmrb-pdf-fetcher](https://github.com/Kings-en/rmrb-pdf-fetcher) 开发，使用 Playwright 重构。
 
 ## 样板展示
-
-### PDF版报纸
 
 [人民日报-2025-10-19-完整版.pdf](https://github.com/user-attachments/files/22998360/-2025-10-19-.pdf)
 
@@ -30,29 +28,25 @@
 | 依赖 | 版本要求 |
 |------|----------|
 | Python | >= 3.11 |
-| Playwright | >= 1.40.0 |
 | 网络访问 | 需能访问 `paper.people.com.cn` |
 
 ### 一键安装（推荐）
 
 **Windows:**
 ```bash
-# 克隆项目后，双击运行或在终端执行
-install.bat
+scripts\install.bat
 ```
 
 **Linux / macOS:**
 ```bash
-git clone https://github.com/your-username/rmrb-pdf-fetcher.git
-cd rmrb-pdf-fetcher
-bash install.sh
+bash scripts/install.sh
 ```
 
-安装脚本会自动完成：
-1. 检测 Python 环境
-2. 安装 Python 依赖（优先使用 uv，回退到 pip + venv）
+安装脚本自动完成：
+1. 检测 Python 环境（优先使用 uv，回退到 pip + venv）
+2. 安装 Python 依赖
 3. 安装 Playwright Chromium 浏览器
-4. 注册 Claude Code Skill
+4. 注册 Claude Code Skill 到 `~/.claude/skills/`
 
 ### 手动安装
 
@@ -75,7 +69,7 @@ python -m venv .venv
 # Linux/macOS
 source .venv/bin/activate
 
-pip install -r requirements.txt
+pip install -e .
 playwright install chromium
 ```
 
@@ -83,23 +77,25 @@ playwright install chromium
 
 ## 使用方法
 
-### 命令行
+### CLI 命令行
 
-**一次性下载（最常用）：**
+安装后提供 `rmrb-download` 命令：
+
 ```bash
-# uv 方式
-uv run python rmrb_download_playwright.py --once
+# 一次性下载（最常用）
+rmrb-download --once
 
-# pip 方式（虚拟环境已激活）
-python rmrb_download_playwright.py --once
+# JSON 输出（用于集成）
+rmrb-download --once --output-json
+
+# 指定输出目录
+rmrb-download --once --output-dir ~/Downloads
+
+# 定时任务模式（默认早8点）
+rmrb-download
 ```
 
-**JSON 输出（用于集成）：**
-```bash
-python rmrb_download_playwright.py --once --output-json
-```
-
-输出示例：
+**JSON 输出示例：**
 ```json
 {
   "success": true,
@@ -110,12 +106,18 @@ python rmrb_download_playwright.py --once --output-json
 }
 ```
 
-**定时任务模式（默认早8点）：**
-```bash
-python rmrb_download_playwright.py
-```
+### Python API
 
-按 `Ctrl+C` 停止定时任务。
+```python
+from rmrb_fetcher.downloader import download, download_with_result
+
+# 简单下载，返回文件路径
+file_path = download()
+
+# 获取结构化结果
+result = download_with_result()
+print(result["success"], result["file_path"])
+```
 
 ### 命令行参数
 
@@ -123,10 +125,11 @@ python rmrb_download_playwright.py
 |------|------|
 | `--once` | 执行一次下载后退出 |
 | `--output-json` | JSON 格式输出，禁用控制台日志 |
+| `--output-dir DIR` | 指定下载输出目录 |
 
 ---
 
-## Claude Code Skill 集成
+## Claude Code Skill
 
 安装后，在 Claude Code 中可以直接使用：
 
@@ -143,8 +146,6 @@ python rmrb_download_playwright.py
 
 ### 手动注册 Skill
 
-如果自动安装未注册 Skill，可以手动操作：
-
 ```bash
 # Windows
 mkdir %USERPROFILE%\.claude\skills\rmrb-pdf-fetcher
@@ -155,22 +156,32 @@ mkdir -p ~/.claude/skills/rmrb-pdf-fetcher
 cp SKILL.md ~/.claude/skills/rmrb-pdf-fetcher/
 ```
 
+### Claude Code Hooks
+
+项目包含 `.claude/settings.json`，配置了 SessionStart hook 自动检查依赖是否安装。
+
 ---
 
 ## 项目结构
 
 ```
 rmrb-pdf-fetcher/
-├── rmrb_download_playwright.py   # 主程序（Playwright版本，推荐）
-├── rmrb_download_once.py         # 简化版（仅一次性下载）
-├── upload_mineru.py              # MinerU 上传工具（可选）
-├── SKILL.md                      # Claude Code Skill 定义
-├── install.sh                    # Linux/macOS 一键安装
-├── install.bat                   # Windows 一键安装
-├── pyproject.toml                # 项目配置
-├── requirements.txt              # Python 依赖
-├── README.md                     # 本文档
-└── 人民日报下载/                  # 下载输出目录（自动创建）
+├── src/
+│   └── rmrb_fetcher/            # Python 包
+│       ├── __init__.py          # 包初始化
+│       ├── cli.py               # CLI 入口 (rmrb-download)
+│       └── downloader.py        # 核心下载逻辑
+├── scripts/
+│   ├── install.sh               # Linux/macOS 一键安装
+│   └── install.bat              # Windows 一键安装
+├── .claude/
+│   └── settings.json            # Claude Code hooks 配置
+├── SKILL.md                     # Claude Code Skill 定义
+├── pyproject.toml               # 项目配置 & 依赖
+├── requirements.txt             # pip 依赖（向后兼容）
+├── README.md                    # 本文档
+├── rmrb_download_playwright.py  # 独立脚本（向后兼容）
+└── rmrb_download_once.py        # 简化版脚本（向后兼容）
 ```
 
 ## 输出文件
@@ -190,12 +201,9 @@ rmrb-pdf-fetcher/
 
 ### 1. Playwright 安装失败
 
-**症状：** `playwright install chromium` 报错或超时
-
-**解决方案：**
 ```bash
-# 设置国内镜像
-set PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright  # Windows
+# 设置国内镜像加速
+set PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright    # Windows
 export PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright  # Linux/macOS
 
 playwright install chromium
@@ -203,35 +211,23 @@ playwright install chromium
 
 ### 2. 下载失败或无版面
 
-**可能原因：**
-- 网络无法访问 `paper.people.com.cn`
-- 当天报纸尚未上线（通常早6点后可用）
-- 版面结构变化
-
-**排查步骤：**
-```bash
-# 检查网络连通性
-curl -I https://paper.people.com.cn/rmrb/
-
-# 查看详细日志
-cat rmrb_download.log
-```
+- 检查网络能否访问 `paper.people.com.cn`
+- 当天报纸通常早6点后上线
+- 查看日志：`cat rmrb_download.log`
 
 ### 3. Python 版本不兼容
 
-确保 Python >= 3.11：
 ```bash
-python --version
-# 如版本过低，从 https://www.python.org/downloads/ 下载安装
+python --version  # 确保 >= 3.11
 ```
 
 ### 4. uv sync 失败
 
-回退到 pip 方式：
+回退到 pip：
 ```bash
-python -m venv .venv
-# 激活虚拟环境后
-pip install -r requirements.txt
+python -m venv .venv && source .venv/bin/activate  # Linux/macOS
+python -m venv .venv && .venv\Scripts\activate      # Windows
+pip install -e .
 playwright install chromium
 ```
 

@@ -14,14 +14,14 @@ dependencies = [
 ]
 
 [project.scripts]
-rmrb-download = "rmrb_download_playwright:main"
+rmrb-download = "rmrb_fetcher.cli:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.backends._legacy:_Backend"
 
-[tool.setuptools]
-py-modules = ["rmrb_download_playwright", "rmrb_download_once"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple"
